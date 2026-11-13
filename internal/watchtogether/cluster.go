@@ -68,6 +68,10 @@ func (s *Service) publishRoomState(room Room) {
 }
 
 func (s *Service) handleClusterEvent(event cache.Event) {
+	if event.Type == clusterReactionEventType {
+		s.handleClusterReaction(event.Payload)
+		return
+	}
 	if event.Type == clusterSuggestionsEventType {
 		if s.suggestions == nil {
 			return

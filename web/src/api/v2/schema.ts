@@ -36343,6 +36343,8 @@ export interface components {
       /** @description Member watch state and picker rows are computed server-side */
       member_state: boolean;
       picker: boolean;
+      /** @description Members send preset reactions over the room socket, alone or with a pause, and every member receives them */
+      reactions: boolean;
       /** @description Opaque revision of this document */
       revision: string;
       /** @description The host may switch a lobby between host picks and voting */
@@ -36357,6 +36359,8 @@ export interface components {
       state: "available" | "disabled" | "not_configured" | "unsupported";
       /** @description The host may stop playback and return the room to the lobby without ending it */
       stop_playback: boolean;
+      /** @description Room transport commands name the member whose play, pause or seek they carry out in issued_by */
+      transport_issuer: boolean;
       /** @description The host may promote any suggestion in a vote room, not only the leader */
       vote_host_override: boolean;
     };

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/Silo-Server/silo-server/internal/cache"
 	"github.com/Silo-Server/silo-server/internal/catalog"
@@ -327,6 +328,10 @@ type memberState struct {
 	bestDrift float64
 }
 
+func (m *memberState) identity() *MemberIdentity {
+	return &MemberIdentity{UserID: m.userID, ProfileID: m.profileID, DisplayName: m.displayName}
+}
+
 // resetForSelection drops everything bound to the previous playback epoch.
 // A new selection starts every member afresh, including their stall history.
 func (m *memberState) resetForSelection() {
@@ -371,6 +376,8 @@ type liveRoom struct {
 	// pausedBeforePending is whether the room was paused before the change
 	// pending at its future anchor. Members keep that state until they run it.
 	pausedBeforePending bool
+	// reactionLimiters holds each local member's reaction budget, by member key.
+	reactionLimiters map[string]*rate.Limiter
 }
 
 type snapshotDispatch struct {
@@ -734,6 +741,9 @@ func (s *Service) handleTransportRequestForConnection(
 	if request.PositionSeconds != nil && !validPosition(*request.PositionSeconds) {
 		return Snapshot{}, ErrInvalidPosition
 	}
+	if request.Reaction != "" && (request.Action != TransportActionPause || !validReactionPreset(request.Reaction)) {
+		return Snapshot{}, ErrInvalidReaction
+	}
 
 	_, live, err := s.getOrLoadLiveRoom(ctx, reg.roomID)
 	if err != nil {
@@ -792,6 +802,7 @@ func (s *Service) handleTransportRequestForConnection(
 			TransportActionPlay,
 			position,
 			executeAt,
+			member.identity(),
 		)
 	case TransportActionPause:
 		live.room.ResumeOnReady = false
@@ -803,6 +814,7 @@ func (s *Service) handleTransportRequestForConnection(
 			TransportActionPause,
 			position,
 			executeAt,
+			member.identity(),
 		)
 	case TransportActionSeek:
 		// During an open barrier the requester is paused by the barrier, not
@@ -819,6 +831,7 @@ func (s *Service) handleTransportRequestForConnection(
 			TransportActionSeek,
 			position,
 			executeAt,
+			member.identity(),
 		)
 	default:
 		s.mu.Unlock()
@@ -836,10 +849,23 @@ func (s *Service) handleTransportRequestForConnection(
 	}
 	snapshot := s.buildSnapshotLocked(live, userID, profileID)
 	dispatches := s.prepareSnapshotDispatchesLocked(live)
+	// A reaction sent with the pause rides along when the member's budget
+	// allows it; the pause itself is never refused for it.
+	var reaction *Reaction
+	var reactionDispatches []snapshotDispatch
+	if request.Reaction != "" && s.allowReactionLocked(live, reg.memberKey) {
+		sent := s.newReactionLocked(member, request.Reaction, live.command.CommandID)
+		reaction = &sent
+		reactionDispatches = reactionDispatchesLocked(live, sent)
+	}
 	s.mu.Unlock()
 
 	s.sendDispatches(ctx, dispatches)
 	s.sendCommandDispatches(ctx, commandDispatches)
+	if reaction != nil {
+		s.sendDispatches(ctx, reactionDispatches)
+		afterRoomCommit(ctx, func() { s.publishReaction(reg.roomID, *reaction) })
+	}
 	return snapshot, nil
 }
 
@@ -995,6 +1021,7 @@ func (s *Service) handleStateReportForConnection(
 				action,
 				live.room.AnchorPositionSeconds,
 				executeAt,
+				member.identity(),
 			)
 		}
 		dispatches = s.prepareSnapshotDispatchesLocked(live)
@@ -2097,6 +2124,7 @@ func (s *Service) maybeResumeFromWaitingLocked(
 		action,
 		live.room.AnchorPositionSeconds,
 		executeAt,
+		nil,
 	)
 	return s.prepareSnapshotDispatchesLocked(live), commandDispatches
 }
@@ -2465,11 +2493,14 @@ func (s *Service) targetedCommandDispatchesLocked(
 	return dispatches
 }
 
+// transportCommandDispatchesLocked issues the room command. issuedBy is the
+// member whose action it carries out, or nil when the room acts on its own.
 func (s *Service) transportCommandDispatchesLocked(
 	live *liveRoom,
 	action TransportAction,
 	positionSeconds float64,
 	executeAt time.Time,
+	issuedBy *MemberIdentity,
 ) []commandDispatch {
 	s.clearCorrectionCommandsLocked(live)
 	command := TransportCommand{
@@ -2477,6 +2508,7 @@ func (s *Service) transportCommandDispatchesLocked(
 		Action: action, PositionSeconds: math.Max(0, positionSeconds),
 		ExecuteAt: executeAt.UTC().Format(time.RFC3339Nano),
 		IssuedAt:  s.now().UTC().Format(time.RFC3339Nano), PlaybackState: live.room.PlaybackState,
+		IssuedBy: issuedBy,
 	}
 	live.command = &command
 	dispatches := make([]commandDispatch, 0, len(live.members))
@@ -2691,6 +2723,7 @@ func (s *Service) enterWaitingLocked(
 		TransportActionPause,
 		live.room.AnchorPositionSeconds,
 		executeAt,
+		nil,
 	), true
 }
 

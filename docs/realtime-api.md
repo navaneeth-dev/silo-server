@@ -467,6 +467,18 @@ A connected member sends `{"type":"lobby_ready","ready":true|false}` on the room
 
 Lobby ready is persisted in the shared room runtime and included in snapshots across API servers. Staging different content, starting or stopping playback, and switching modes clear it in the same transaction as the room update. A stale node adopting that transaction preserves any ready flag subsequently saved for the current selection.
 
+### Who issued a transport command
+
+A room `transport_command` may carry `issued_by`, `{"user_id":7,"profile_id":"…","display_name":"Asha"}`, naming the member whose play, pause or seek it carries out. That covers a `transport_request` and a host's pause or resume reported from system controls. Commands the room issues on its own (corrections, syncs to a joining or recovering member, buffering barriers, and the resume once a barrier clears) leave it out. A member receives the command for its own action too, so a client that announces commands compares `issued_by` with its own member entry. The field is stored with the room command, so a command resent by the reconciler or by another API server still names its issuer; clients should ignore a command whose `execute_at` is long past when announcing it. The `transport_issuer` capability advertises it, and clients that ignore unknown fields are unaffected.
+
+### Reactions over the room socket
+
+Any connected member, host or guest and with or without an attached playback session, sends `{"type":"reaction","preset":"brb"}`. The presets are `brb`, `back`, `snack_break` and `laugh`; there is no free text. The server sends every connected member, the sender included, `{"type":"reaction","reaction":{"reaction_id":"…","preset":"brb","from":{"user_id":7,"profile_id":"…","display_name":"Asha"},"sent_at":"…"}}`. An unknown preset answers `error bad_request`. Each member may send three reactions at once and then one every two seconds; a reaction past that answers `error rate_limited` and reaches nobody.
+
+A `transport_request` with `action: "pause"` may carry `reaction` with a preset ("Pause: brb"). The pause is handled as usual. When it issues a room command and the member's reaction budget allows, the reaction goes out with `command_id` set to that pause's command, so clients can show the two as one notice. A `reaction` on any other action is refused with `error bad_request` and nothing changes; a reaction over budget is dropped without affecting the pause.
+
+Reactions are never stored. The API server holding the sender's socket delivers them to its own sockets and publishes them on the playback event bus (Redis) for other servers to deliver to theirs. A member who is not connected at that moment never sees them, and without Redis only members on the same server do. The rate limit is kept by the server holding the sender's socket. The `reactions` capability advertises support.
+
 ### Read member watch state for named content
 
 `POST /api/v2/watch-together/rooms/{room_id}/member-state` (`queryWatchTogetherMemberState`) requires authenticated profile authority and room proof in `X-Room-Token` for the exact room, account and profile. The body carries `content_ids` (1 to 200). It is a POST-shaped read: the id set exceeds what a query string carries and the operation changes nothing, so it is classified naturally idempotent. Invalid proof returns `403`, missing room `404`, closed room `409`, an empty, blank or oversized id list `422`, and unavailable service `503`. The response is `no-store`.
@@ -481,7 +493,7 @@ Rows are resolved to catalog cards through the caller's access filter; a row who
 
 ### Watch-together capabilities
 
-`GET /api/v2/watch-together/capabilities` (`getWatchTogetherCapabilities`) requires an authenticated account and follows the shared capability document conventions (opaque `revision`, `state`, `allowed`, private revalidation with `ETag`). When rooms are served, each feature flag reflects its wired operation dependencies. `max_member_state_ids` is 200 when member-state is available and zero otherwise. `lobby_ready`, `connection_replaced` and `socket_protocol` (`silo.room.v2`) require the room socket; the protocol is an empty string when the socket is unavailable. When the room service is not wired the state is `not_configured` and every flag is `false`. Clients decide whether to show the staged lobby, the ready check, the mode switch and the shared picker from this document, not from the server version.
+`GET /api/v2/watch-together/capabilities` (`getWatchTogetherCapabilities`) requires an authenticated account and follows the shared capability document conventions (opaque `revision`, `state`, `allowed`, private revalidation with `ETag`). When rooms are served, each feature flag reflects its wired operation dependencies. `max_member_state_ids` is 200 when member-state is available and zero otherwise. `lobby_ready`, `connection_replaced`, `transport_issuer`, `reactions` and `socket_protocol` (`silo.room.v2`) require the room socket; the protocol is an empty string when the socket is unavailable. When the room service is not wired the state is `not_configured` and every flag is `false`. Clients decide whether to show the staged lobby, the ready check, the mode switch and the shared picker from this document, not from the server version.
 
 ### Suggestion creation receipt storage
 

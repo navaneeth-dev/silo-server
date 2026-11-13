@@ -54,6 +54,13 @@ type watchTogetherTransportRequestMessage struct {
 	Action          watchtogether.TransportAction `json:"action"`
 	PositionSeconds *float64                      `json:"position_seconds,omitempty"`
 	IsPaused        bool                          `json:"is_paused"`
+	// Optional: a reaction preset sent with a pause ("Pause: brb").
+	Reaction watchtogether.ReactionPreset `json:"reaction,omitempty"`
+}
+
+type watchTogetherReactionMessage struct {
+	Type   string                       `json:"type"`
+	Preset watchtogether.ReactionPreset `json:"preset"`
 }
 
 type watchTogetherStateReportMessage struct {
@@ -305,7 +312,9 @@ func (h *WatchTogetherHandler) serveRoomConnection(parent context.Context, conn 
 			return
 		}
 
-		if err := h.handleRoomClientMessage(ctx, realtimeConn, reg, userID, profileID, data); err != nil {
+		if err := h.handleRoomClientMessage(ctx, realtimeConn, reg, userID, profileID, data); errors.Is(err, watchtogether.ErrReactionRateLimited) {
+			realtimeConn.WriteError("rate_limited", err.Error())
+		} else if err != nil {
 			realtimeConn.WriteError("bad_request", err.Error())
 		}
 	}
@@ -344,8 +353,15 @@ func (h *WatchTogetherHandler) handleRoomClientMessage(
 			Action:          msg.Action,
 			PositionSeconds: msg.PositionSeconds,
 			IsPaused:        msg.IsPaused,
+			Reaction:        msg.Reaction,
 		})
 		return err
+	case "reaction":
+		var msg watchTogetherReactionMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			return err
+		}
+		return h.Service.SendReactionForConnection(reg, msg.Preset)
 	case "state_report":
 		var msg watchTogetherStateReportMessage
 		if err := json.Unmarshal(data, &msg); err != nil {

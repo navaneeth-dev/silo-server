@@ -56573,6 +56573,10 @@
           "picker": {
             "type": "boolean"
           },
+          "reactions": {
+            "description": "Members send preset reactions over the room socket, alone or with a pause, and every member receives them",
+            "type": "boolean"
+          },
           "revision": {
             "description": "Opaque revision of this document",
             "type": "string"
@@ -56602,6 +56606,10 @@
             "description": "The host may stop playback and return the room to the lobby without ending it",
             "type": "boolean"
           },
+          "transport_issuer": {
+            "description": "Room transport commands name the member whose play, pause or seek they carry out in issued_by",
+            "type": "boolean"
+          },
           "vote_host_override": {
             "description": "The host may promote any suggestion in a vote room, not only the leader",
             "type": "boolean"
@@ -56616,6 +56624,8 @@
           "picker",
           "vote_host_override",
           "stop_playback",
+          "transport_issuer",
+          "reactions",
           "max_member_state_ids",
           "socket_protocol",
           "revision",

@@ -148,6 +148,8 @@ type TransportRequest struct {
 	Action          TransportAction
 	PositionSeconds *float64
 	IsPaused        bool
+	// Reaction is an optional preset sent with a pause ("Pause: brb").
+	Reaction ReactionPreset
 }
 
 type StateReport struct {
@@ -169,6 +171,17 @@ type TransportCommand struct {
 	ExecuteAt         string            `json:"execute_at"`
 	IssuedAt          string            `json:"issued_at"`
 	PlaybackState     RoomPlaybackState `json:"playback_state"`
+	// IssuedBy names the member whose play, pause or seek this room command
+	// carries out. Commands the room issues on its own (corrections, syncs,
+	// buffering barriers and the resume after one) leave it out.
+	IssuedBy *MemberIdentity `json:"issued_by,omitempty"`
+}
+
+// MemberIdentity names a room member in messages other members see.
+type MemberIdentity struct {
+	UserID      int    `json:"user_id"`
+	ProfileID   string `json:"profile_id"`
+	DisplayName string `json:"display_name"`
 }
 
 // Suggestion represents a content suggestion in a vote-mode room.

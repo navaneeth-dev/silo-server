@@ -1092,6 +1092,55 @@ func TestHostPauseReportPausesTheRoom(t *testing.T) {
 	}
 }
 
+func TestRoomCommandsNameTheMemberWhoActed(t *testing.T) {
+	f := newBufferingRoom(t, "guest", "other")
+	f.member("host").displayName = "Ravi"
+	issuer := func(profileID string) *MemberIdentity {
+		t.Helper()
+		payloads := f.conns[profileID].payloads
+		for i := len(payloads) - 1; i >= 0; i-- {
+			if command, ok := payloads[i][commandPayloadKey].(TransportCommand); ok {
+				return command.IssuedBy
+			}
+		}
+		t.Fatalf("%s received no command", profileID)
+		return nil
+	}
+	ravi := MemberIdentity{UserID: 7, ProfileID: "host", DisplayName: "Ravi"}
+
+	// A seek, and the resume the room sends once everyone is ready.
+	f.hostRequest(TransportRequest{Action: TransportActionSeek, PositionSeconds: new(3730.0)})
+	if got := issuer("guest"); got == nil || *got != ravi {
+		t.Fatalf("seek issued_by = %+v; want %+v", got, ravi)
+	}
+	f.resumeAll()
+	if got := issuer("guest"); got != nil {
+		t.Fatalf("barrier resume issued_by = %+v; want none", got)
+	}
+
+	// A pause from the host's system controls is the host's action too.
+	f.now = f.now.Add(commandSettleWindow + time.Second)
+	f.stateReport("host", StateReport{SessionID: "host-session", PositionSeconds: f.expected(), IsPaused: true})
+	if f.repo.room.PlaybackState != RoomPlaybackStatePaused {
+		t.Fatalf("host pause report left the room %s", f.repo.room.PlaybackState)
+	}
+	if got := issuer("other"); got == nil || *got != ravi {
+		t.Fatalf("reported pause issued_by = %+v; want %+v", got, ravi)
+	}
+
+	// A guest's stall pauses the room on its own: nobody pressed anything.
+	f.now = f.now.Add(commandSettleWindow + time.Second)
+	f.hostRequest(TransportRequest{Action: TransportActionPlay, PositionSeconds: new(f.expected())})
+	f.now = f.now.Add(commandSettleWindow + time.Second)
+	f.buffer("guest")
+	if f.repo.room.PlaybackState != RoomPlaybackStateWaiting {
+		t.Fatalf("guest stall left the room %s", f.repo.room.PlaybackState)
+	}
+	if got := issuer("other"); got != nil {
+		t.Fatalf("buffering pause issued_by = %+v; want none", got)
+	}
+}
+
 func intPtr(value int) *int {
 	return &value
 }
