@@ -41,6 +41,9 @@ import {
   updateWatchTogetherRoomPolicy,
   voteWatchTogetherSuggestion,
   type WatchTogetherTransportCommand,
+  type WatchTogetherReaction,
+  type WatchTogetherReactionPreset,
+  type WatchTogetherRoomEvent,
   type WatchTogetherRoomSnapshot,
   type WatchTogetherSuggestion,
 } from "@/lib/watchTogether";
@@ -83,6 +86,13 @@ export interface WatchTogetherRoomConnectionResult {
   ) => Promise<WatchTogetherRoomSnapshot | null>;
   /** Marks this member ready (or not) in the lobby. Sent over the socket and shared across API servers. */
   setLobbyReady: (ready: boolean) => SendRoomMessageResult;
+  /** Sends a preset reaction to everyone in the room. */
+  sendReaction: (preset: WatchTogetherReactionPreset) => SendRoomMessageResult;
+  /**
+   * Calls listener with each member-issued transport command and each
+   * reaction as it arrives, for passing notices. Returns the unsubscribe.
+   */
+  subscribeRoomEvents: (listener: (event: WatchTogetherRoomEvent) => void) => () => void;
   closeRoom: () => Promise<void>;
   createSuggestion: (draft: SuggestionCreationDraft) => Promise<void>;
   deleteSuggestion: (suggestionId: string) => Promise<void>;
@@ -199,6 +209,15 @@ export function useWatchTogetherRoomConnection({
     setClosedReason(reason);
   }, []);
 
+  // Notices need every event, so listeners are called per message rather
+  // than through state, where two quick messages would render as one.
+  const roomEventListeners = useRef(new Set<(event: WatchTogetherRoomEvent) => void>());
+  const subscribeRoomEvents = useCallback((listener: (event: WatchTogetherRoomEvent) => void) => {
+    roomEventListeners.current.add(listener);
+    return () => {
+      roomEventListeners.current.delete(listener);
+    };
+  }, []);
   const sendRoomMessage = useCallback((message: Record<string, unknown>) => {
     const socket = socketRef.current;
     if (
@@ -280,6 +299,10 @@ export function useWatchTogetherRoomConnection({
   ]);
 
   useEffect(() => {
+    const listeners = roomEventListeners.current;
+    const emitRoomEvent = (event: WatchTogetherRoomEvent) => {
+      for (const listener of listeners) listener(event);
+    };
     if (!roomId || !roomToken) {
       return;
     }
@@ -456,7 +479,13 @@ export function useWatchTogetherRoomConnection({
             const payload = message.command as WatchTogetherTransportCommand | undefined;
             if (payload) {
               setTransportCommand(payload);
+              if (payload.issued_by) emitRoomEvent({ kind: "transport", command: payload });
             }
+            return;
+          }
+          case "reaction": {
+            const payload = message.reaction as WatchTogetherReaction | undefined;
+            if (payload?.from) emitRoomEvent({ kind: "reaction", reaction: payload });
             return;
           }
           case "pong":
@@ -477,7 +506,9 @@ export function useWatchTogetherRoomConnection({
           case "error": {
             // Defense in depth: some server paths report terminal conditions
             // as an error message instead of (or before) room_closed.
-            if (message.code === "not_found" || message.code === "gone") {
+            if (message.code === "rate_limited") {
+              emitRoomEvent({ kind: "reaction_rate_limited" });
+            } else if (message.code === "not_found" || message.code === "gone") {
               setRoom(null);
               markClosed(message.code === "gone" ? "ended" : "not_found");
               socket.close();
@@ -692,6 +723,10 @@ export function useWatchTogetherRoomConnection({
     (ready: boolean) => sendRoomMessage({ type: "lobby_ready", ready }),
     [sendRoomMessage],
   );
+  const sendReaction = useCallback(
+    (preset: WatchTogetherReactionPreset) => sendRoomMessage({ type: "reaction", preset }),
+    [sendRoomMessage],
+  );
 
   const closeAuthority = captureProfileRequestContext();
   const closeRoom = useCallback(async () => {
@@ -838,6 +873,8 @@ export function useWatchTogetherRoomConnection({
     stopPlayback,
     updateSelectionMode,
     setLobbyReady,
+    sendReaction,
+    subscribeRoomEvents,
     closeRoom,
     createSuggestion,
     deleteSuggestion,

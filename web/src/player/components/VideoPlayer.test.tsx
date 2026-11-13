@@ -370,6 +370,8 @@ function roomConnection(
     stopPlayback: vi.fn(async () => null),
     updateSelectionMode: vi.fn(async () => null),
     setLobbyReady: vi.fn(() => ({ ok: true })),
+    sendReaction: vi.fn(() => ({ ok: true })),
+    subscribeRoomEvents: vi.fn(() => () => {}),
     ...overrides,
   };
 }

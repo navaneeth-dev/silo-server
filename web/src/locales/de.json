@@ -62986,7 +62986,7 @@
   "web.admin.settings.playback.transcoding.copyKeyframePlaylistDescription": [
     {
       "type": 0,
-      "value": "Experimentell. Wenn Silo das Video einer Datei kopiert, werden anhand der Keyframes der Datei alle Segmente von Anfang an aufgelistet, statt einer Playlist, die beim Kopieren wächst. Verhindert, dass Safari mittendrin einfriert. Ein Sprung über den bereits kopierten Teil hinaus wartet, bis Silo dort angekommen ist."
+      "value": "Experimentell. Wenn Silo das Video einer Datei kopiert, werden anhand der Keyframes der Datei alle Segmente von Anfang an aufgelistet, statt einer Playlist, die beim Kopieren wächst. Verhindert, dass Safari mittendrin einfriert. Ein Sprung weit über den bereits kopierten Teil hinaus startet das Kopieren ab dieser Stelle neu."
     }
   ],
   "web.admin.settings.playback.transcoding.dir": [

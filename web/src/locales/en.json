@@ -63814,7 +63814,7 @@
   "web.admin.settings.playback.transcoding.copyKeyframePlaylistDescription": [
     {
       "type": 0,
-      "value": "Experimental. When Silo copies a file's video, list every segment from the start, using the file's keyframes, instead of a playlist that grows as Silo copies. Stops Safari freezing partway through. A seek ahead of what Silo has copied waits for it to get there."
+      "value": "Experimental. When Silo copies a file's video, list every segment from the start, using the file's keyframes, instead of a playlist that grows as Silo copies. Stops Safari freezing partway through. A seek well past what Silo has copied starts the copy again from there."
     }
   ],
   "web.admin.settings.playback.transcoding.dir": [
@@ -119289,6 +119289,48 @@
       "value": "You can pause & resume"
     }
   ],
+  "web.player.watchTogether.reactions.back": [
+    {
+      "type": 0,
+      "value": "Back"
+    }
+  ],
+  "web.player.watchTogether.reactions.brb": [
+    {
+      "type": 0,
+      "value": "brb"
+    }
+  ],
+  "web.player.watchTogether.reactions.label": [
+    {
+      "type": 0,
+      "value": "Reactions"
+    }
+  ],
+  "web.player.watchTogether.reactions.laugh": [
+    {
+      "type": 0,
+      "value": "😂"
+    }
+  ],
+  "web.player.watchTogether.reactions.laughLabel": [
+    {
+      "type": 0,
+      "value": "Laugh"
+    }
+  ],
+  "web.player.watchTogether.reactions.pauseBrb": [
+    {
+      "type": 0,
+      "value": "Pause: brb"
+    }
+  ],
+  "web.player.watchTogether.reactions.snackBreak": [
+    {
+      "type": 0,
+      "value": "Snack break"
+    }
+  ],
   "web.player.watchTogether.selfName": [
     {
       "type": 1,
@@ -119327,6 +119369,52 @@
     {
       "type": 0,
       "value": "Watch Party"
+    }
+  ],
+  "web.player.watchTogether.toast.jumped": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " jumped to "
+    },
+    {
+      "type": 1,
+      "value": "time"
+    }
+  ],
+  "web.player.watchTogether.toast.paused": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " paused"
+    }
+  ],
+  "web.player.watchTogether.toast.rateLimited": [
+    {
+      "type": 0,
+      "value": "Too many reactions. Try again in a moment."
+    }
+  ],
+  "web.player.watchTogether.toast.resumed": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " resumed"
+    }
+  ],
+  "web.player.watchTogether.toast.you": [
+    {
+      "type": 0,
+      "value": "You"
     }
   ],
   "web.player.watchTogether.unavailable": [

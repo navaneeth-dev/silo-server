@@ -61,6 +61,8 @@ import { usePlayerConfig } from "../context/PlayerConfigContext";
 import { lowerQualityOption, qualityOptionsFromPlanV3 } from "../playback-info";
 import { preconnectToStreamOrigin } from "../stream-url";
 import { WatchTogetherPanel } from "./WatchTogetherPanel";
+import { WatchTogetherRoomNotices } from "./WatchTogetherRoomNotices";
+import type { WatchTogetherReactionPreset } from "@/lib/watchTogether";
 import { readPlanInvalidatedPayload, VIDEO_PLAYBACK_COMMANDS } from "../realtime-protocol";
 import type {
   PlaybackRealtimeCommandEnvelope,
@@ -1178,6 +1180,8 @@ export function VideoPlayer({
       stopPlayback: async () => null,
       updateSelectionMode: async () => null,
       setLobbyReady: () => ({ ok: false }),
+      sendReaction: () => ({ ok: false }),
+      subscribeRoomEvents: () => () => {},
       closeRoom: async () => {},
       createSuggestion: async () => {},
       deleteSuggestion: async () => {},
@@ -4057,7 +4061,7 @@ export function VideoPlayer({
 
   // -- Control callbacks --
   const setPlayback = useCallback(
-    (action: "play" | "pause" | "toggle") => {
+    (action: "play" | "pause" | "toggle", reaction?: WatchTogetherReactionPreset) => {
       if (watchTogether.replacementReason) return;
       resetStillWatchingStreak();
       const video = videoRef.current;
@@ -4085,6 +4089,7 @@ export function VideoPlayer({
           shouldPlay ? "play" : "pause",
           currentTimeRef.current,
           !shouldPlay,
+          shouldPlay ? undefined : reaction,
         );
         return;
       }
@@ -5423,6 +5428,19 @@ export function VideoPlayer({
           onToggleGuestControl={(policy) => void handleToggleGuestControl(policy)}
           onEndRoom={() => void handleEndRoom()}
           onStopPlayback={() => void handleStopRoomPlayback()}
+          onReact={(preset) => watchTogether.sendReaction(preset)}
+          onPauseWithBrb={() => setPlayback("pause", "brb")}
+        />
+      ) : null}
+
+      {!isDetached &&
+      watchTogetherRoomId &&
+      !watchTogether.closedReason &&
+      !watchTogether.replacementReason ? (
+        <WatchTogetherRoomNotices
+          subscribe={watchTogether.subscribeRoomEvents}
+          members={watchTogether.room?.members}
+          serverTimeOffsetMs={watchTogether.serverTimeOffsetMs}
         />
       ) : null}
 

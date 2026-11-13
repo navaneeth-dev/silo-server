@@ -56815,7 +56815,7 @@
   "web.admin.settings.playback.transcoding.copyKeyframePlaylistDescription": [
     {
       "type": 0,
-      "value": "試験運用。Siloがファイルの動画をコピーするとき、コピーに合わせて伸びるプレイリストではなく、ファイルのキーフレームを使って最初からすべてのセグメントを一覧にします。Safariが途中でフリーズするのを防ぎます。Siloがコピーした位置より先にシークすると、そこまでコピーされるまで待機します。"
+      "value": "試験運用。Siloがファイルの動画をコピーするとき、コピーに合わせて伸びるプレイリストではなく、ファイルのキーフレームを使って最初からすべてのセグメントを一覧にします。Safariが途中でフリーズするのを防ぎます。Siloがコピーした位置より大きく先にシークすると、その位置からコピーをやり直します。"
     }
   ],
   "web.admin.settings.playback.transcoding.dir": [

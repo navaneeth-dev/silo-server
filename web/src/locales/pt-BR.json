@@ -69824,7 +69824,7 @@
   "web.admin.settings.playback.transcoding.copyKeyframePlaylistDescription": [
     {
       "type": 0,
-      "value": "Experimental. Quando o Silo copia o vídeo de um arquivo, lista todos os segmentos desde o início, usando os quadros-chave do arquivo, em vez de uma playlist que cresce conforme o Silo copia. Evita que o Safari trave no meio da reprodução. Um avanço além do que o Silo já copiou aguarda até que ele chegue lá."
+      "value": "Experimental. Quando o Silo copia o vídeo de um arquivo, lista todos os segmentos desde o início, usando os quadros-chave do arquivo, em vez de uma playlist que cresce conforme o Silo copia. Evita que o Safari trave no meio da reprodução. Uma busca muito além do que o Silo já copiou reinicia a cópia a partir desse ponto."
     }
   ],
   "web.admin.settings.playback.transcoding.dir": [

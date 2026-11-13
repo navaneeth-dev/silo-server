@@ -176,6 +176,8 @@ function connection(
     stopPlayback: vi.fn(async () => room({ selected_content_id: "dune", selection_revision: 2 })),
     updateSelectionMode: vi.fn(async () => room({ selection_mode: "vote" })),
     setLobbyReady: vi.fn(() => ({ ok: true })),
+    sendReaction: vi.fn(() => ({ ok: true })),
+    subscribeRoomEvents: vi.fn(() => () => {}),
     closeRoom: vi.fn(async () => {}),
     createSuggestion: vi.fn(async () => {}),
     deleteSuggestion: vi.fn(async () => {}),

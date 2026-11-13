@@ -6,7 +6,13 @@ import {
 } from "@/components/watchtogether/ConnectionStatusDot";
 import { EndWatchPartyDialog } from "@/components/watchtogether/EndWatchPartyDialog";
 import { useT } from "@/i18n";
-import type { GuestControlPolicy, WatchTogetherRoomSnapshot } from "@/lib/watchTogether";
+import {
+  reactionLabel,
+  WATCH_TOGETHER_REACTION_PRESETS,
+  type GuestControlPolicy,
+  type WatchTogetherReactionPreset,
+  type WatchTogetherRoomSnapshot,
+} from "@/lib/watchTogether";
 
 interface WatchTogetherPanelProps {
   room: WatchTogetherRoomSnapshot | null;
@@ -16,6 +22,9 @@ interface WatchTogetherPanelProps {
   onToggleGuestControl: (policy: GuestControlPolicy) => void;
   onEndRoom: () => void;
   onStopPlayback: () => void;
+  onReact: (preset: WatchTogetherReactionPreset) => void;
+  /** Pauses for everyone and says "brb" in one go. */
+  onPauseWithBrb: () => void;
 }
 
 export function WatchTogetherPanel({
@@ -26,6 +35,8 @@ export function WatchTogetherPanel({
   onToggleGuestControl,
   onEndRoom,
   onStopPlayback,
+  onReact,
+  onPauseWithBrb,
 }: WatchTogetherPanelProps) {
   const t = useT();
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
@@ -105,6 +116,39 @@ export function WatchTogetherPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {/* Reactions */}
+      {room ? (
+        <div
+          role="group"
+          aria-label={t("web.player.watchTogether.reactions.label")}
+          className="mt-3 flex flex-wrap gap-1 border-t border-white/8 pt-2.5"
+        >
+          {WATCH_TOGETHER_REACTION_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              data-reaction={preset}
+              onClick={() => onReact(preset)}
+              aria-label={
+                preset === "laugh" ? t("web.player.watchTogether.reactions.laughLabel") : undefined
+              }
+              className="rounded-md bg-white/12 px-2.5 py-1 text-[11px] font-medium text-white/90 transition-colors hover:bg-white/20"
+            >
+              {reactionLabel(t, preset)}
+            </button>
+          ))}
+          {room.self_can_control_transport && room.playback_state === "playing" ? (
+            <button
+              type="button"
+              onClick={onPauseWithBrb}
+              className="rounded-md bg-white/12 px-2.5 py-1 text-[11px] font-medium text-white/90 transition-colors hover:bg-white/20"
+            >
+              {t("web.player.watchTogether.reactions.pauseBrb")}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Actions */}

@@ -69732,7 +69732,7 @@
   "web.admin.settings.playback.transcoding.copyKeyframePlaylistDescription": [
     {
       "type": 0,
-      "value": "Experimental. Cuando Silo copia el video de un archivo, enumera todos los segmentos desde el principio usando los fotogramas clave del archivo, en lugar de una lista de reproducción que crece a medida que Silo copia. Evita que Safari se congele a mitad de camino. Una búsqueda más allá de lo que Silo ha copiado espera hasta que llegue ahí."
+      "value": "Experimental. Cuando Silo copia el video de un archivo, enumera todos los segmentos desde el principio usando los fotogramas clave del archivo, en lugar de una lista de reproducción que crece a medida que Silo copia. Evita que Safari se congele a mitad de camino. Si saltas a un punto muy posterior a lo que Silo ha copiado, la copia vuelve a empezar desde ahí."
     }
   ],
   "web.admin.settings.playback.transcoding.dir": [

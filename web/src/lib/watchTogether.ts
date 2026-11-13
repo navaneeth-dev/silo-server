@@ -19,6 +19,7 @@ import { updateRoomSelectionMode } from "@/api/v2/watchTogetherSelectionMode";
 import { queryRoomMemberState } from "@/api/v2/watchTogetherMemberState";
 import { readRoomPicker } from "@/api/v2/watchTogetherPicker";
 import { readWatchTogetherCapabilities } from "@/api/v2/watchTogetherCapabilities";
+import type { Translate } from "@/i18n";
 
 export type GuestControlPolicy = "host_only" | "guest_play_pause";
 export type WatchTogetherRole = "host" | "guest";
@@ -68,6 +69,12 @@ export interface WatchTogetherRoomSnapshot {
   members?: WatchTogetherRoomMember[];
 }
 
+export interface WatchTogetherMemberIdentity {
+  user_id: number;
+  profile_id: string;
+  display_name: string;
+}
+
 export interface WatchTogetherTransportCommand {
   command_id: string;
   session_id?: string;
@@ -77,7 +84,44 @@ export interface WatchTogetherTransportCommand {
   execute_at: string;
   issued_at: string;
   playback_state: WatchTogetherPlaybackState;
+  /** The member whose play, pause or seek this is. Absent when the room acts on its own, and on older servers. */
+  issued_by?: WatchTogetherMemberIdentity;
 }
+
+/** Reaction presets, in the order the panel shows them. Sent and received as data; only the label is translated. */
+export const WATCH_TOGETHER_REACTION_PRESETS = ["brb", "back", "snack_break", "laugh"] as const;
+export type WatchTogetherReactionPreset = (typeof WATCH_TOGETHER_REACTION_PRESETS)[number];
+
+export interface WatchTogetherReaction {
+  reaction_id: string;
+  preset: string;
+  from: WatchTogetherMemberIdentity;
+  /** The pause the reaction was sent with ("Pause: brb"). */
+  command_id?: string;
+  sent_at: string;
+}
+
+/** The label of a reaction preset, or null for one this client does not know. */
+export function reactionLabel(t: Translate, preset: string): string | null {
+  switch (preset) {
+    case "brb":
+      return t("web.player.watchTogether.reactions.brb");
+    case "back":
+      return t("web.player.watchTogether.reactions.back");
+    case "snack_break":
+      return t("web.player.watchTogether.reactions.snackBreak");
+    case "laugh":
+      return t("web.player.watchTogether.reactions.laugh");
+    default:
+      return null;
+  }
+}
+
+/** Room events the player shows as passing notices. */
+export type WatchTogetherRoomEvent =
+  | { kind: "transport"; command: WatchTogetherTransportCommand }
+  | { kind: "reaction"; reaction: WatchTogetherReaction }
+  | { kind: "reaction_rate_limited" };
 
 export interface WatchTogetherRoomResponse {
   room: WatchTogetherRoomSnapshot;

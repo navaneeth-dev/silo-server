@@ -8,6 +8,7 @@ import {
 } from "react";
 import { toMediaTime, toPlayerTime } from "../utils/mediaTimeline";
 import { isNativePositionInRanges } from "../utils/roomSyncCatchup";
+import type { WatchTogetherReactionPreset } from "@/lib/watchTogether";
 import type { WatchTogetherRoomConnectionResult } from "./useWatchTogetherRoomConnection";
 
 interface UseWatchTogetherPlaybackSyncOptions {
@@ -40,10 +41,12 @@ interface UseWatchTogetherPlaybackSyncResult {
   catchingUp: boolean;
   /** A readiness acknowledgement is due: the room waits, or this viewer recovers. */
   readinessPending: boolean;
+  /** reaction, with a pause only, sends that preset with it ("Pause: brb"). */
   requestTransport: (
     action: "play" | "pause" | "seek",
     positionSeconds: number,
     isPaused: boolean,
+    reaction?: WatchTogetherReactionPreset,
   ) => TransportRequestResult;
   reportReady: () => TransportRequestResult;
   reportBuffering: (positionSeconds?: number, isPaused?: boolean) => TransportRequestResult;
@@ -589,7 +592,12 @@ export function useWatchTogetherPlaybackSync({
   ]);
 
   const requestTransport = useCallback(
-    (action: "play" | "pause" | "seek", positionSeconds: number, isPaused: boolean) => {
+    (
+      action: "play" | "pause" | "seek",
+      positionSeconds: number,
+      isPaused: boolean,
+      reaction?: WatchTogetherReactionPreset,
+    ) => {
       if (
         connectionState !== "connected" ||
         !roomConnected ||
@@ -603,6 +611,7 @@ export function useWatchTogetherPlaybackSync({
         action,
         position_seconds: positionSeconds,
         is_paused: isPaused,
+        ...(reaction ? { reaction } : {}),
       });
     },
     [attachedSessionId, connectionState, roomConnected, sendRoomMessage, sessionId],
